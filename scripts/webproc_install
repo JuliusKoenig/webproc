@@ -1,0 +1,63 @@
+#!/bin/bash
+
+echo "Installing webproc"
+
+# save the current working directory
+cwd=$(pwd)
+
+# update the package list
+apt-get update
+
+# install wget
+echo "Installing wget"
+apt-get install -y wget
+
+# download the given version of webproc
+echo $WEBPROC_CONTAINER_PATH
+cd "$WEBPROC_CONTAINER_PATH" || exit 1
+full_url="$WEBPROC_BASE_DOWNLOAD_URL"/v"$WEBPROC_VERSION"/webproc_"$WEBPROC_VERSION"_linux_amd64.gz
+target_path="$WEBPROC_CONTAINER_PATH"/temp/webproc.gz
+echo "Downloading webproc v$WEBPROC_VERSION from $full_url to $target_path"
+mkdir -p temp
+cd temp || exit 1
+wget "$full_url" -O "webproc.gz"
+
+# check if the download was successful
+if [ $? -ne 0 ]; then
+  echo "Failed to download webproc"
+  exit 1
+fi
+
+# decompress webproc
+echo "Decompressing webproc"
+gunzip webproc.gz
+
+# rename webproc to webproc_binary
+echo "Renaming webproc to webproc_binary"
+mv ./webproc ../webproc_binary
+
+# delete the webproc version directory
+cd ..
+echo "Deleting webproc version directory"
+rm -rf "$WEBPROC_VERSION"
+
+# rename webproc_entrypoint to $WEBPROC_CONFIG_PROGRAM_NAME if set
+if [ -n "$WEBPROC_CONFIG_PROGRAM_NAME" ]; then
+  echo "Renaming webproc_entrypoint to $WEBPROC_CONFIG_PROGRAM_NAME"
+  mv ./webproc_program_entrypoint ./"$WEBPROC_CONFIG_PROGRAM_NAME"
+fi
+
+# make all scripts executable
+echo "Making all scripts executable"
+chmod +x -R ./
+
+# create a symbolic link to $WEBPROC_CONTAINER_PATH
+ln "$WEBPROC_CONTAINER_PATH" /webproc -s
+
+# create a symbolic link to $WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_PROGRAM_NAME
+touch "$WEBPROC_CONFIG_PATH"/"$WEBPROC_CONFIG_FILE_NAME"
+ln "$WEBPROC_CONFIG_PATH"/"$WEBPROC_CONFIG_FILE_NAME" /"$WEBPROC_CONFIG_FILE_NAME" -s
+
+# restore the working directory
+cd "$cwd" || exit 1
+echo "Finished installing webproc"

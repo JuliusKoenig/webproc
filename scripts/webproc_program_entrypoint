@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# print all given arguments if WEBPROC_PRINT is true
+if [ "$WEBPROC_PRINT" = true ]; then
+  echo "Starting '$WEBPROC_CONFIG_PROGRAM_NAME' with arguments:"
+  i=0
+  for arg in "$@"
+  do
+    echo "[$i] $arg"
+    i=$((i+1))
+  done
+fi
+
+# start the program
+"$@"

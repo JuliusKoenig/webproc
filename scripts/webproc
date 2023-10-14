@@ -1,0 +1,29 @@
+#!/bin/bash
+
+in_docker="$1"
+
+if [ "$in_docker" == "" ]; then
+  in_docker=true # default value
+fi
+
+# parse the configuration file
+webproc_parse_configuration_file
+
+# print the environment variables if WEBPROC_PRINT is true
+if [ "$WEBPROC_PRINT" = true ]; then
+  webproc_print
+fi
+
+# start webproc
+echo "Starting Webproc"
+webproc_binary "$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME"
+
+# if exit code is 1 and $WEBPROC_JOIN_TERMINAL_ON_CONFIG_ERROR is true, join the terminal
+if [ $? -eq 1 ] && [ "$WEBPROC_JOIN_TERMINAL_ON_CONFIG_ERROR" = true ]; then
+  if [ "$in_docker" = true ]; then
+    echo "Webproc exited with code 1."
+    exit 1
+  fi
+  echo "Webproc exited with code 1. Joining the terminal"
+  /bin/bash
+fi

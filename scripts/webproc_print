@@ -1,0 +1,9 @@
+#!/bin/bash
+
+echo "Environment Variables:"
+printenv
+echo ""
+
+echo "Configuration File($WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME)"
+cat "$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME"
+echo ""

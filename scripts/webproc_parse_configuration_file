@@ -1,0 +1,167 @@
+#!/bin/bash
+
+echo "Creating Configuration File"
+
+# create the folder if it doesn't exist
+mkdir -p "$(dirname "$WEBPROC_CONFIG_FILE")"
+
+str_keys=("Host" "User" "Pass" "Log" "OnExit" "OnSave" "RestartTimeout")
+
+function get_value() {
+  # get config the value of the given key
+  # $1: key
+  # $2: default value
+  # $3: config file path. default: WEBPROC_CONFIG_FILE
+
+  # read the config file
+  if [ -z "$3" ]; then
+    config_file="$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME"
+  else
+    config_file="$3"
+  fi
+
+  # check if the config file exists
+  if [ ! -f "$config_file" ]; then
+    echo "$2"
+    return
+  else
+    # check if the config file is readable
+    if [ ! -r "$config_file" ]; then
+      echo "Config file '$config_file' is not readable"
+      exit 1
+    fi
+  fi
+
+  # get the value of the given key
+  value=$(grep -E "^$1\s*=" "$config_file" | sed -E "s/^$1\s*=\s*//")
+
+  # check if the key in str_keys
+  is_str_key=false
+  for str_key in "${str_keys[@]}"
+  do
+    if [ "$str_key" = "$1" ]; then
+      is_str_key=true
+      break
+    fi
+  done
+
+  # if the key is in str_keys, remove the quotes
+  if [ "$is_str_key" = true ]; then
+    value=$(echo "$value" | sed -E "s/^\"(.*)\"$/\1/")
+  fi
+
+  # if the value is empty, return the default value
+  if [ -z "$value" ]; then
+    echo "$2"
+  else
+    echo "$value"
+  fi
+}
+
+function set_value() {
+  # set the value of the given key
+  # $1: key
+  # $2: value
+  # $3: config file path. default: WEBPROC_CONFIG_FILE
+
+  # read the config file
+  if [ -z "$3" ]; then
+    config_file="$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME"
+  else
+    config_file="$3"
+  fi
+
+  # create the config file if it doesn't exist
+  if [ ! -f "$config_file" ]; then
+    touch "$config_file"
+  fi
+
+  echo "Setting key=$1 to '$2'"
+
+  # set the value of the given key
+
+  # check if the key in str_keys
+  is_str_key=false
+  for str_key in "${str_keys[@]}"
+  do
+    if [ "$str_key" = "$1" ]; then
+      is_str_key=true
+      break
+    fi
+  done
+
+  if [ "$is_str_key" = true ]; then
+    echo "$1 = \"$2\"" >> "$config_file"
+  else
+    echo "$1 = $2" >> "$config_file"
+  fi
+}
+
+# get the values
+program_args=$(get_value "ProgramArgs" "$WEBPROC_CONFIG_PROGRAM_ARGS")
+host=$(get_value "Host" "$WEBPROC_CONFIG_HOST")
+port=$(get_value "Port" "$WEBPROC_CONFIG_PORT")
+user=$(get_value "User" "$WEBPROC_CONFIG_USER")
+password=$(get_value "Pass" "$WEBPROC_CONFIG_PASSWORD")
+allowed_ips=$(get_value "AllowedIPs" "$WEBPROC_CONFIG_ALLOWED_IPS")
+log=$(get_value "Log" "$WEBPROC_CONFIG_LOG")
+on_exit=$(get_value "OnExit" "$WEBPROC_CONFIG_ON_EXIT")
+on_save=$(get_value "OnSave" "$WEBPROC_CONFIG_ON_SAVE")
+configuration_files=$(get_value "ConfigurationFiles" "$WEBPROC_CONFIG_CONFIGURATION_FILES")
+restart_timeout=$(get_value "RestartTimeout" "$WEBPROC_CONFIG_RESTART_TIMEOUT")
+
+# check if the program entrypoint should be used
+if [ "$WEBPROC_USE_PROGRAM_ENTRYPOINT" = true ]; then
+  # check if the program name is set
+  if [ -z "$WEBPROC_CONFIG_PROGRAM_NAME" ]; then
+    echo "Program name is not set"
+    exit 1
+  fi
+
+  # check if the program entrypoint exists
+  if [ ! -f "$WEBPROC_CONTAINER_PATH"/"$WEBPROC_CONFIG_PROGRAM_NAME" ]; then
+    echo "Program entrypoint '$WEBPROC_CONTAINER_PATH/$WEBPROC_CONFIG_PROGRAM_NAME' does not exist"
+    exit 1
+  fi
+
+  # add the program entrypoint to the arguments
+  if [ "$program_args" == "[]" ]; then
+    program_args="['$WEBPROC_CONTAINER_PATH/$WEBPROC_CONFIG_PROGRAM_NAME']"
+  else
+    # check if the program entrypoint is already in the arguments
+    if [[ "$program_args" != *"$WEBPROC_CONTAINER_PATH/$WEBPROC_CONFIG_PROGRAM_NAME"* ]]; then
+      program_args="['$WEBPROC_CONTAINER_PATH/$WEBPROC_CONFIG_PROGRAM_NAME', ${program_args:1:-1}]"
+    fi
+  fi
+fi
+
+# check if the webproc config.toml should be added to the configuration files
+if [ "$WEBPROC_CONFIG_ADD_TO_CONFIGURATION_FILES" = true ]; then
+  # add the webproc config.toml to the configuration files
+  if [ "$configuration_files" == "[]" ]; then
+    configuration_files="[\"$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME\"]"
+  else
+    # check if the webproc config.toml is already in the configuration files
+    if [[ "$configuration_files" != *"$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME"* ]]; then
+      configuration_files="$configuration_files, \"$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME\"]"
+    fi
+  fi
+fi
+
+# remove config file if it exists
+if [ -f "$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME" ]; then
+  rm "$WEBPROC_CONFIG_PATH/$WEBPROC_CONFIG_FILE_NAME"
+fi
+
+# set the values
+set_value "ProgramArgs" "$program_args"
+set_value "Host" "$host"
+set_value "Port" "$port"
+set_value "User" "$user"
+set_value "Pass" "$password"
+set_value "AllowedIPs" "$allowed_ips"
+set_value "Log" "$log"
+set_value "OnExit" "$on_exit"
+set_value "OnSave" "$on_save"
+set_value "ConfigurationFiles" "$configuration_files"
+set_value "RestartTimeout" "$restart_timeout"
