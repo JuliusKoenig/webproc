@@ -10,4 +10,4 @@ Todo
 * [Original Project](https://github.com/jpillora/webproc)
 * [GitHub](https://github.com/JuliusKoenig/webproc)
 * [DockerHub](https://hub.docker.com/r/lolexplain/webproc)
-* [Debian Dockerfile](https://github.com/JuliusKoenig/webproc/blob/main/debian/Dockerfile
+* [Debian](https://github.com/JuliusKoenig/webproc/blob/main/debian/Dockerfile
