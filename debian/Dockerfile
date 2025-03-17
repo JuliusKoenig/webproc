@@ -1,4 +1,4 @@
-FROM debian:latest
+FROM python:3.11-bookworm
 
 ENV WEBPROC_PRINT="true"
 ENV WEBPROC_USE_PROGRAM_ENTRYPOINT="true"
@@ -33,8 +33,10 @@ VOLUME $WEBPROC_CONFIG_PATH
 # Copy scripts
 COPY /scripts $WEBPROC_CONTAINER_PATH
 
+WORKDIR $WEBPROC_CONTAINER_PATH
+
 # install webproc
-RUN webproc_install
+RUN ./webproc_install
 
 # expose port
 EXPOSE $WEBPROC_CONFIG_PORT/tcp
